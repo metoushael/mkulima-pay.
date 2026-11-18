@@ -1,0 +1,230 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidUserProfile(data, uid) {
+      return data.userId is string &&
+             data.userId == uid &&
+             data.nom is string && data.nom.size() >= 1 && data.nom.size() <= 80 &&
+             data.postnom is string && data.postnom.size() >= 1 && data.postnom.size() <= 80 &&
+             data.prenom is string && data.prenom.size() >= 1 && data.prenom.size() <= 80 &&
+             data.dateOfBirth is string && data.dateOfBirth.size() >= 6 && data.dateOfBirth.size() <= 20 &&
+             data.sex in ['M', 'F'] &&
+             data.phone is string && data.phone.size() >= 9 && data.phone.size() <= 20 &&
+             data.province is string && data.province.size() >= 2 && data.province.size() <= 80 &&
+             data.idType in ['VOTER_CARD', 'PASSPORT', 'DRIVER_LICENSE', 'ATTESTATION'] &&
+             data.idNumber is string && data.idNumber.size() >= 4 && data.idNumber.size() <= 50 &&
+             data.hasIdPhoto is bool &&
+             data.hasSelfie is bool &&
+             data.hasSelfie == true &&
+             data.identityStatus in ['PENDING', 'VERIFIED'] &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 120)) &&
+             (!('agriculturalSector' in data) || data.agriculturalSector in ['VIVRIER', 'MARAICHAGE', 'CAFE_CACAO', 'ELEVAGE', 'AGROFORESTERIE', 'AUTRE']) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 128)) &&
+             (!('lastVerificationScore' in data) || (data.lastVerificationScore is int && data.lastVerificationScore >= 0 && data.lastVerificationScore <= 100)) &&
+             (!('verifiedAt' in data) || isValidTimestamp(data.verifiedAt)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidCreditRequest(data, uid) {
+      return data.userId is string &&
+             data.userId == uid &&
+             data.crop in ['MAIS', 'MANIOC', 'HARICOT', 'RIZ', 'CAFE', 'BANANE', 'AUTRE'] &&
+             (data.areaHectares is float || data.areaHectares is int) &&
+             data.areaHectares >= 0.1 && data.areaHectares <= 500 &&
+             data.harvestMonthIndex is int && data.harvestMonthIndex >= 0 && data.harvestMonthIndex <= 11 &&
+             data.experienceYears is int && data.experienceYears >= 0 && data.experienceYears <= 90 &&
+             data.monthlyIncomeUsd is int && data.monthlyIncomeUsd >= 1 && data.monthlyIncomeUsd <= 1000000 &&
+             data.requestedAmountUsd is int && data.requestedAmountUsd >= 10 && data.requestedAmountUsd <= 100000 &&
+             data.durationMonths is int && data.durationMonths >= 1 && data.durationMonths <= 60 &&
+             data.purpose in ['SEMENCES', 'OUTILS', 'ENGRAIS', 'STOCKAGE', 'MAIN_OEUVRE'] &&
+             data.riskLevel in ['FAIBLE', 'MOYEN', 'ELEVE'] &&
+             data.riskScore is int && data.riskScore >= 0 && data.riskScore <= 100 &&
+             data.monthlyInstallmentUsd is int && data.monthlyInstallmentUsd >= 1 && data.monthlyInstallmentUsd <= 100000 &&
+             data.status in ['IN_PROGRESS', 'ACCEPTED', 'REJECTED'] &&
+             data.reasons is list && data.reasons.size() <= 10 &&
+             (data.reasons.size() == 0 || data.reasons[0] is map) &&
+             data.schedule is list && data.schedule.size() >= 1 && data.schedule.size() <= 24 &&
+             (data.schedule[0] is map) &&
+             data.advice is list && data.advice.size() <= 10 &&
+             (data.advice.size() == 0 || data.advice[0] is string) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTransaction(data, uid) {
+      return data.userId is string &&
+             data.userId == uid &&
+             isValidId(data.requestId) &&
+             data.type in ['DISBURSEMENT', 'REPAYMENT'] &&
+             data.amountUsd is int && data.amountUsd >= 1 && data.amountUsd <= 100000 &&
+             data.channel is string && data.channel.size() >= 2 && data.channel.size() <= 40 &&
+             data.reference is string && data.reference.size() >= 2 && data.reference.size() <= 64 &&
+             data.description is string && data.description.size() >= 2 && data.description.size() <= 200 &&
+             data.status in ['COMPLETED', 'PENDING'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'nom', 'postnom', 'prenom', 'dateOfBirth',
+                         'sex', 'phone', 'province', 'idType', 'idNumber',
+                         'hasIdPhoto', 'hasSelfie', 'identityStatus', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'email', 'nom', 'postnom', 'prenom', 'dateOfBirth',
+                         'sex', 'phone', 'province', 'location', 'agriculturalSector',
+                         'idType', 'idNumber', 'hasIdPhoto', 'hasSelfie',
+                         'identityStatus', 'lastVerificationScore', 'verifiedAt',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().identityStatus == 'PENDING' &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         // Action 1: Profile re-enrollment / update (resets status to PENDING)
+                         (
+                           incoming().identityStatus == 'PENDING' &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'email', 'nom', 'postnom', 'prenom', 'dateOfBirth',
+                             'sex', 'phone', 'province', 'location', 'agriculturalSector',
+                             'idType', 'idNumber', 'hasIdPhoto', 'hasSelfie',
+                             'identityStatus', 'updatedAt'
+                           ])
+                         ) ||
+                         // Action 2: Biometric face verification approval
+                         (
+                           incoming().identityStatus == 'VERIFIED' &&
+                           ('lastVerificationScore' in incoming()) &&
+                           incoming().lastVerificationScore >= 70 &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'identityStatus', 'lastVerificationScore', 'verifiedAt', 'updatedAt'
+                           ])
+                         ) ||
+                         // Action 3: Agricultural sector & location update
+                         (
+                           incoming().identityStatus == existing().identityStatus &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'province', 'location', 'agriculturalSector', 'updatedAt'
+                           ])
+                         )
+                       );
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /creditRequests/{requestId} {
+        allow get: if isOwner(userId) && isValidId(requestId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(requestId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'crop', 'areaHectares', 'harvestMonthIndex',
+                           'experienceYears', 'monthlyIncomeUsd', 'requestedAmountUsd',
+                           'durationMonths', 'purpose', 'riskLevel', 'riskScore',
+                           'monthlyInstallmentUsd', 'status', 'reasons', 'schedule',
+                           'advice', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'crop', 'areaHectares', 'harvestMonthIndex',
+                           'experienceYears', 'monthlyIncomeUsd', 'requestedAmountUsd',
+                           'durationMonths', 'purpose', 'riskLevel', 'riskScore',
+                           'monthlyInstallmentUsd', 'status', 'reasons', 'schedule',
+                           'advice', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidCreditRequest(incoming(), userId) &&
+                         incoming().status in ['IN_PROGRESS', 'ACCEPTED'] &&
+                         exists(/databases/$(database)/documents/users/$(userId)) &&
+                         get(/databases/$(database)/documents/users/$(userId)).data.identityStatus == 'VERIFIED';
+
+        // Terminal state locking: once ACCEPTED or REJECTED, status cannot be mutated again
+        allow update: if isOwner(userId) &&
+                         isValidId(requestId) &&
+                         isValidCreditRequest(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         existing().status == 'IN_PROGRESS' &&
+                         incoming().status in ['ACCEPTED', 'REJECTED'] &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(requestId);
+      }
+
+      match /transactions/{txId} {
+        allow get: if isOwner(userId) && isValidId(txId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(txId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'requestId', 'type', 'amountUsd',
+                           'channel', 'reference', 'description', 'status',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'requestId', 'type', 'amountUsd',
+                           'channel', 'reference', 'description', 'status',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTransaction(incoming(), userId) &&
+                         existsAfter(/databases/$(database)/documents/users/$(userId)/creditRequests/$(incoming().requestId));
+
+        allow update: if isOwner(userId) &&
+                         isValidId(txId) &&
+                         isValidTransaction(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         existing().status == 'PENDING' &&
+                         incoming().status == 'COMPLETED' &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(txId);
+      }
+    }
+  }
+}

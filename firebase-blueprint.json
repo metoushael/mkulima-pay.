@@ -1,0 +1,278 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Enrolled DRC farmer account and Halisi identity profile stored at /users/{userId}.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID matching path {userId}."
+        },
+        "email": {
+          "type": "string",
+          "description": "Google account email associated with the farmer."
+        },
+        "nom": {
+          "type": "string",
+          "description": "Family name (Nom)."
+        },
+        "postnom": {
+          "type": "string",
+          "description": "Middle / post-name (Postnom)."
+        },
+        "prenom": {
+          "type": "string",
+          "description": "First name (Prenom)."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Date of birth formatted dd/MM/yyyy."
+        },
+        "sex": {
+          "type": "string",
+          "enum": ["M", "F"],
+          "description": "Biological sex."
+        },
+        "phone": {
+          "type": "string",
+          "description": "DRC phone number (+243XXXXXXXXX)."
+        },
+        "province": {
+          "type": "string",
+          "description": "DRC province or territory."
+        },
+        "location": {
+          "type": "string",
+          "description": "Specific village, commune, or agricultural zone within the province."
+        },
+        "agriculturalSector": {
+          "type": "string",
+          "enum": ["VIVRIER", "MARAICHAGE", "CAFE_CACAO", "ELEVAGE", "AGROFORESTERIE", "AUTRE"],
+          "description": "Primary agricultural sector of the farmer."
+        },
+        "idType": {
+          "type": "string",
+          "enum": ["VOTER_CARD", "PASSPORT", "DRIVER_LICENSE", "ATTESTATION"],
+          "description": "Identity document category."
+        },
+        "idNumber": {
+          "type": "string",
+          "description": "Identity document number."
+        },
+        "hasIdPhoto": {
+          "type": "boolean",
+          "description": "Whether an ID document photo was provided locally."
+        },
+        "hasSelfie": {
+          "type": "boolean",
+          "description": "Whether a biometric selfie was captured locally."
+        },
+        "identityStatus": {
+          "type": "string",
+          "enum": ["PENDING", "VERIFIED"],
+          "description": "Halisi identity verification status."
+        },
+        "lastVerificationScore": {
+          "type": "integer",
+          "description": "Biometric verification score (0..100)."
+        },
+        "verifiedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Verification timestamp (clients submit FieldValue.serverTimestamp())."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (clients submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (clients submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "nom",
+        "postnom",
+        "prenom",
+        "dateOfBirth",
+        "sex",
+        "phone",
+        "province",
+        "idType",
+        "idNumber",
+        "hasIdPhoto",
+        "hasSelfie",
+        "identityStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CreditRequest": {
+      "title": "CreditRequest",
+      "description": "Agricultural microcredit request and risk evaluation stored at /users/{userId}/creditRequests/{requestId}.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID."
+        },
+        "crop": {
+          "type": "string",
+          "enum": ["MAIS", "MANIOC", "HARICOT", "RIZ", "CAFE", "BANANE", "AUTRE"]
+        },
+        "areaHectares": {
+          "type": "number"
+        },
+        "harvestMonthIndex": {
+          "type": "integer"
+        },
+        "experienceYears": {
+          "type": "integer"
+        },
+        "monthlyIncomeUsd": {
+          "type": "integer"
+        },
+        "requestedAmountUsd": {
+          "type": "integer"
+        },
+        "durationMonths": {
+          "type": "integer"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": ["SEMENCES", "OUTILS", "ENGRAIS", "STOCKAGE", "MAIN_OEUVRE"]
+        },
+        "riskLevel": {
+          "type": "string",
+          "enum": ["FAIBLE", "MOYEN", "ELEVE"]
+        },
+        "riskScore": {
+          "type": "integer"
+        },
+        "monthlyInstallmentUsd": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["IN_PROGRESS", "ACCEPTED", "REJECTED"]
+        },
+        "reasons": {
+          "type": "array"
+        },
+        "schedule": {
+          "type": "array"
+        },
+        "advice": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (clients submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (clients submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "crop",
+        "areaHectares",
+        "harvestMonthIndex",
+        "experienceYears",
+        "monthlyIncomeUsd",
+        "requestedAmountUsd",
+        "durationMonths",
+        "purpose",
+        "riskLevel",
+        "riskScore",
+        "monthlyInstallmentUsd",
+        "status",
+        "reasons",
+        "schedule",
+        "advice",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FinancialTransaction": {
+      "title": "FinancialTransaction",
+      "description": "Real credit disbursement or repayment ledger entry stored at /users/{userId}/transactions/{txId}.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID."
+        },
+        "requestId": {
+          "type": "string",
+          "description": "Associated creditRequest document ID."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["DISBURSEMENT", "REPAYMENT"]
+        },
+        "amountUsd": {
+          "type": "integer"
+        },
+        "channel": {
+          "type": "string",
+          "description": "Payment channel (e.g. M-Pesa, Airtel Money, Orange Money, Mkulima Pay)."
+        },
+        "reference": {
+          "type": "string",
+          "description": "Transaction reference code."
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETED", "PENDING"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (clients submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (clients submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "requestId",
+        "type",
+        "amountUsd",
+        "channel",
+        "reference",
+        "description",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated farmer identity profile document."
+    },
+    "/users/{userId}/creditRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/CreditRequest" },
+      "description": "User-scoped agricultural microcredit requests and risk scores."
+    },
+    "/users/{userId}/transactions/{txId}": {
+      "schema": { "$ref": "#/entities/FinancialTransaction" },
+      "description": "User-scoped real financial transactions (disbursements and repayments)."
+    }
+  }
+}
