@@ -40,10 +40,20 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Restore debug keystore
+      - name: Restore or generate debug keystore
         run: |
           if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
             base64 -d debug.keystore.base64 > debug.keystore
+          fi
+          if [ ! -f debug.keystore ]; then
+            echo "debug.keystore not found; generating a standard debug keystore."
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -keypass android \
+              -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug, O=Android, C=US"
           fi
 
       - name: Prepare release signing configuration
