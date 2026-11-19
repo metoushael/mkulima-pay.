@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1010263329794-gujl9ceubfnl7elvqc982opo5va9a362.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.mkulimapay.rdcapp",
+            "certificate_hash": "f0869983c3d8780a9c26542d47193da7526298e3"
+          }
+        },
+        {
           "client_id": "1010263329794-u3b7mm40pe12fkcjott66hekrlv92l5q.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
