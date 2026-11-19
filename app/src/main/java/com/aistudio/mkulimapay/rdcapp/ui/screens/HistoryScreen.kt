@@ -65,6 +65,7 @@ import com.aistudio.mkulimapay.rdcapp.model.CreditRequest
 import com.aistudio.mkulimapay.rdcapp.model.CreditStatus
 import com.aistudio.mkulimapay.rdcapp.model.FinancialTransaction
 import com.aistudio.mkulimapay.rdcapp.model.TransactionType
+import com.aistudio.mkulimapay.rdcapp.ui.components.FixedHeaderBar
 import com.aistudio.mkulimapay.rdcapp.ui.components.CreditNotificationsCard
 import com.aistudio.mkulimapay.rdcapp.ui.components.OfflineModeBanner
 import com.aistudio.mkulimapay.rdcapp.ui.components.SkeletonLoaderCard
@@ -131,178 +132,179 @@ fun HistoryScreen(
     }
     val remainingBalance = (totalDisbursed - totalRepaid).coerceAtLeast(0)
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
+    Column(modifier = Modifier.fillMaxSize()) {
+        FixedHeaderBar {
             Text(
                 text = strings.historyTitle,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
         }
-
-        if (!isOnline) {
-            item {
-                OfflineModeBanner(
-                    strings = strings,
-                    lastSyncedAtMillis = lastSyncedAtMillis
-                )
-            }
-            if (creditNotifications.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (!isOnline) {
                 item {
-                    CreditNotificationsCard(
+                    OfflineModeBanner(
                         strings = strings,
-                        language = language,
-                        notifications = creditNotifications,
-                        isFromCache = true
+                        lastSyncedAtMillis = lastSyncedAtMillis
                     )
                 }
-            }
-        }
-
-        item {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = activeTab == HistoryTab.REQUESTS,
-                    onClick = { activeTab = HistoryTab.REQUESTS },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    modifier = Modifier.testTag("history_tab_requests")
-                ) {
-                    Text("${strings.tabRequests} (${requests.size})")
-                }
-                SegmentedButton(
-                    selected = activeTab == HistoryTab.TRANSACTIONS,
-                    onClick = { activeTab = HistoryTab.TRANSACTIONS },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    modifier = Modifier.testTag("history_tab_transactions")
-                ) {
-                    Text("${strings.tabTransactions} (${transactions.size})")
-                }
-            }
-        }
-
-        if (activeTab == HistoryTab.REQUESTS) {
-            item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    FilterChip(
-                        selected = selectedFilter == HistoryFilter.ALL,
-                        onClick = { selectedFilter = HistoryFilter.ALL },
-                        label = { Text(strings.filterAll) },
-                        modifier = Modifier.testTag("history_filter_all")
-                    )
-                    FilterChip(
-                        selected = selectedFilter == HistoryFilter.IN_PROGRESS,
-                        onClick = { selectedFilter = HistoryFilter.IN_PROGRESS },
-                        label = { Text(strings.filterInProgress) },
-                        modifier = Modifier.testTag("history_filter_progress")
-                    )
-                    FilterChip(
-                        selected = selectedFilter == HistoryFilter.ACCEPTED,
-                        onClick = { selectedFilter = HistoryFilter.ACCEPTED },
-                        label = { Text(strings.filterAccepted) },
-                        modifier = Modifier.testTag("history_filter_accepted")
-                    )
-                    FilterChip(
-                        selected = selectedFilter == HistoryFilter.REJECTED,
-                        onClick = { selectedFilter = HistoryFilter.REJECTED },
-                        label = { Text(strings.filterRejected) },
-                        modifier = Modifier.testTag("history_filter_rejected")
-                    )
-                }
-            }
-
-            if (requestsState is UiState.Loading) {
-                items(2) { SkeletonLoaderCard() }
-            } else if (filteredRequests.isEmpty()) {
-                item {
-                    EmptyHistoryBox(
-                        title = strings.historyEmptyTitle,
-                        description = strings.historyEmptyDesc
-                    )
-                }
-            } else {
-                items(filteredRequests, key = { it.requestId }) { req ->
-                    CreditRequestSummaryCard(
-                        request = req,
-                        language = language,
-                        onClick = { onOpenCreditResult(req) }
-                    )
-                }
-            }
-        } else {
-            // Transactions Tab
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(strings.totalDisbursedLabel, style = MaterialTheme.typography.labelSmall)
-                            Text("$totalDisbursed USD", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(strings.totalRepaidLabel, style = MaterialTheme.typography.labelSmall)
-                            Text("$totalRepaid USD", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Text(strings.remainingBalanceLabel, style = MaterialTheme.typography.labelSmall)
-                            Text(
-                                "$remainingBalance USD",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                if (creditNotifications.isNotEmpty()) {
+                    item {
+                        CreditNotificationsCard(
+                            strings = strings,
+                            language = language,
+                            notifications = creditNotifications,
+                            isFromCache = true
+                        )
                     }
                 }
             }
 
-            if (acceptedRequests.isNotEmpty() && remainingBalance > 0) {
-                item {
-                    Button(
-                        onClick = { showRepaymentDialog = true },
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("history_record_repayment_button")
+            item {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = activeTab == HistoryTab.REQUESTS,
+                        onClick = { activeTab = HistoryTab.REQUESTS },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        modifier = Modifier.testTag("history_tab_requests")
                     ) {
-                        Icon(Icons.Rounded.Add, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(strings.recordRepaymentTitle)
+                        Text("${strings.tabRequests} (${requests.size})")
+                    }
+                    SegmentedButton(
+                        selected = activeTab == HistoryTab.TRANSACTIONS,
+                        onClick = { activeTab = HistoryTab.TRANSACTIONS },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        modifier = Modifier.testTag("history_tab_transactions")
+                    ) {
+                        Text("${strings.tabTransactions} (${transactions.size})")
                     }
                 }
             }
 
-            if (transactionsState is UiState.Loading) {
-                items(2) { SkeletonLoaderCard() }
-            } else if (transactions.isEmpty()) {
+            if (activeTab == HistoryTab.REQUESTS) {
                 item {
-                    EmptyHistoryBox(
-                        title = strings.transactionsEmptyTitle,
-                        description = strings.transactionsEmptyDesc
-                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedFilter == HistoryFilter.ALL,
+                            onClick = { selectedFilter = HistoryFilter.ALL },
+                            label = { Text(strings.filterAll) },
+                            modifier = Modifier.testTag("history_filter_all")
+                        )
+                        FilterChip(
+                            selected = selectedFilter == HistoryFilter.IN_PROGRESS,
+                            onClick = { selectedFilter = HistoryFilter.IN_PROGRESS },
+                            label = { Text(strings.filterInProgress) },
+                            modifier = Modifier.testTag("history_filter_progress")
+                        )
+                        FilterChip(
+                            selected = selectedFilter == HistoryFilter.ACCEPTED,
+                            onClick = { selectedFilter = HistoryFilter.ACCEPTED },
+                            label = { Text(strings.filterAccepted) },
+                            modifier = Modifier.testTag("history_filter_accepted")
+                        )
+                        FilterChip(
+                            selected = selectedFilter == HistoryFilter.REJECTED,
+                            onClick = { selectedFilter = HistoryFilter.REJECTED },
+                            label = { Text(strings.filterRejected) },
+                            modifier = Modifier.testTag("history_filter_rejected")
+                        )
+                    }
+                }
+
+                if (requestsState is UiState.Loading) {
+                    items(2) { SkeletonLoaderCard() }
+                } else if (filteredRequests.isEmpty()) {
+                    item {
+                        EmptyHistoryBox(
+                            title = strings.historyEmptyTitle,
+                            description = strings.historyEmptyDesc
+                        )
+                    }
+                } else {
+                    items(filteredRequests, key = { it.requestId }) { req ->
+                        CreditRequestSummaryCard(
+                            request = req,
+                            language = language,
+                            onClick = { onOpenCreditResult(req) }
+                        )
+                    }
                 }
             } else {
-                items(transactions, key = { it.txId }) { tx ->
-                    TransactionSummaryCard(transaction = tx, language = language)
+                // Transactions Tab
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                Text(strings.totalDisbursedLabel, style = MaterialTheme.typography.labelSmall)
+                                Text("$totalDisbursed USD", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                Text(strings.totalRepaidLabel, style = MaterialTheme.typography.labelSmall)
+                                Text("$totalRepaid USD", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                Text(strings.remainingBalanceLabel, style = MaterialTheme.typography.labelSmall)
+                                Text(
+                                    "$remainingBalance USD",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (acceptedRequests.isNotEmpty() && remainingBalance > 0) {
+                    item {
+                        Button(
+                            onClick = { showRepaymentDialog = true },
+                            shape = CircleShape,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("history_record_repayment_button")
+                        ) {
+                            Icon(Icons.Rounded.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(strings.recordRepaymentTitle)
+                        }
+                    }
+                }
+
+                if (transactionsState is UiState.Loading) {
+                    items(2) { SkeletonLoaderCard() }
+                } else if (transactions.isEmpty()) {
+                    item {
+                        EmptyHistoryBox(
+                            title = strings.transactionsEmptyTitle,
+                            description = strings.transactionsEmptyDesc
+                        )
+                    }
+                } else {
+                    items(transactions, key = { it.txId }) { tx ->
+                        TransactionSummaryCard(transaction = tx, language = language)
+                    }
                 }
             }
         }

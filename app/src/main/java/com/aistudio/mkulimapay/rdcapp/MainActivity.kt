@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.activity.SystemBarStyle
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -67,6 +69,7 @@ import com.aistudio.mkulimapay.rdcapp.data.UiState
 import com.aistudio.mkulimapay.rdcapp.i18n.AppStrings
 import com.aistudio.mkulimapay.rdcapp.i18n.LocalizedStrings
 import com.aistudio.mkulimapay.rdcapp.model.AppSettings
+import com.aistudio.mkulimapay.rdcapp.model.ThemePreference
 import com.aistudio.mkulimapay.rdcapp.ui.MkulimaViewModel
 import com.aistudio.mkulimapay.rdcapp.ui.SettingsViewModel
 import com.aistudio.mkulimapay.rdcapp.ui.screens.AuthScreen
@@ -123,6 +126,27 @@ class MainActivity : ComponentActivity() {
             )
             val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
 
+            // Les icônes de la barre d'état / de navigation suivent le thème choisi dans l'app
+            // (et non celui du téléphone), pour rester lisibles en mode sombre comme en mode clair.
+            val systemDark = isSystemInDarkTheme()
+            val isDarkTheme = when (settings.themePreference) {
+                ThemePreference.LIGHT -> false
+                ThemePreference.DARK -> true
+                ThemePreference.AUTO -> systemDark
+            }
+            DisposableEffect(isDarkTheme) {
+                val barStyle = if (isDarkTheme) {
+                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                } else {
+                    SystemBarStyle.light(
+                        android.graphics.Color.TRANSPARENT,
+                        android.graphics.Color.TRANSPARENT
+                    )
+                }
+                enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
+                onDispose { }
+            }
+
             MkulimaPayTheme(
                 themePreference = settings.themePreference,
                 largeText = settings.largeText
@@ -148,7 +172,6 @@ private fun MkulimaPayAppRoot(
 ) {
     val strings = AppStrings.get(settings.language)
     var introDone by rememberSaveable { mutableStateOf(false) }
-    var showOnboarding by rememberSaveable { mutableStateOf(false) }
 
     var currentUser by remember { mutableStateOf(Firebase.auth.currentUser) }
     DisposableEffect(Unit) {
@@ -160,26 +183,22 @@ private fun MkulimaPayAppRoot(
         onDispose { auth.removeAuthStateListener(listener) }
     }
 
-    if (!introDone) {
+    // On attend la fin de l'intro ET le chargement des réglages enregistrés avant de décider
+    // d'afficher l'onboarding (sinon la valeur par défaut « non terminé » le relançait à chaque fois).
+    if (!introDone || !settings.isLoaded) {
         SplashScreen(
             strings = strings,
-            onFinished = {
-                introDone = true
-                showOnboarding = !settings.onboardingCompleted
-            }
+            onFinished = { introDone = true }
         )
         return
     }
 
-    if (showOnboarding) {
+    if (!settings.onboardingCompleted) {
         OnboardingScreen(
             strings = strings,
             language = settings.language,
             onToggleLanguage = { settingsViewModel.toggleLanguage() },
-            onFinishOnboarding = {
-                settingsViewModel.completeOnboarding()
-                showOnboarding = false
-            }
+            onFinishOnboarding = { settingsViewModel.completeOnboarding() }
         )
         return
     }

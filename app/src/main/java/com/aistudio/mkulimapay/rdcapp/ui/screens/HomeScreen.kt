@@ -57,6 +57,7 @@ import com.aistudio.mkulimapay.rdcapp.model.FinancialTransaction
 import com.aistudio.mkulimapay.rdcapp.model.IdentityStatus
 import com.aistudio.mkulimapay.rdcapp.model.TransactionType
 import com.aistudio.mkulimapay.rdcapp.model.UserProfile
+import com.aistudio.mkulimapay.rdcapp.ui.components.FixedHeaderBar
 import com.aistudio.mkulimapay.rdcapp.ui.components.CreditNotificationsCard
 import com.aistudio.mkulimapay.rdcapp.ui.components.CreditStatusChip
 import com.aistudio.mkulimapay.rdcapp.ui.components.IdentityStatusChip
@@ -104,13 +105,8 @@ fun HomeScreen(
     }
     val remainingBalance = (totalDisbursed - totalRepaid).coerceAtLeast(0)
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Top App Bar avec nom réel ou état sans profil
-        item {
+    Column(modifier = Modifier.fillMaxSize()) {
+        FixedHeaderBar {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -171,272 +167,277 @@ fun HomeScreen(
                 LanguageToggleButton(language = language, onToggle = onToggleLanguage)
             }
         }
-
-        // Bandeau mode hors ligne (DataStore)
-        if (!isOnline) {
-            item {
-                OfflineModeBanner(
-                    strings = strings,
-                    lastSyncedAtMillis = lastSyncedAtMillis
-                )
-            }
-        }
-
-        // Erreur réseau / Firestore éventuelle (masquée si hors ligne avec cache local disponible)
-        val hasOfflineBackup = !isOnline && (userProfile != null || creditNotifications.isNotEmpty())
-        if (!hasOfflineBackup &&
-            (profileState is UiState.Error || creditRequestsState is UiState.Error || transactionsState is UiState.Error)
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            val errorMsg = (profileState as? UiState.Error)?.message
-                ?: (creditRequestsState as? UiState.Error)?.message
-                ?: (transactionsState as? UiState.Error)?.message
-                ?: strings.halisiErrorNetwork
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.ErrorOutline,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = errorMsg,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            }
-        }
-
-        // Carte Statut Identité réelle (ou cache local hors ligne)
-        item {
-            if (profileState is UiState.Loading) {
-                SkeletonLoaderCard()
-            } else {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = strings.identityCardTitle,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            IdentityStatusChip(
-                                status = identityStatus,
-                                language = language
-                            )
-                        }
-                        val statusDesc = when (identityStatus) {
-                            IdentityStatus.UNVERIFIED -> strings.identityCardDescUnverified
-                            IdentityStatus.PENDING -> strings.identityCardDescPending
-                            IdentityStatus.VERIFIED -> strings.identityCardDescVerified
-                        }
-                        Text(
-                            text = statusDesc,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-
-        // Dernières notifications de crédit (live ou cache DataStore hors ligne)
-        if (creditNotifications.isNotEmpty() || !isOnline) {
-            item {
-                CreditNotificationsCard(
-                    strings = strings,
-                    language = language,
-                    notifications = creditNotifications,
-                    isFromCache = !isOnline
-                )
-            }
-        }
-
-        // Solde & métriques réelles si transactions existantes
-        if (transactions.isNotEmpty()) {
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        LedgerMetric(
-                            label = strings.totalDisbursedLabel,
-                            value = "$totalDisbursed USD",
-                            modifier = Modifier.weight(1f)
-                        )
-                        LedgerMetric(
-                            label = strings.totalRepaidLabel,
-                            value = "$totalRepaid USD",
-                            modifier = Modifier.weight(1f)
-                        )
-                        LedgerMetric(
-                            label = strings.remainingBalanceLabel,
-                            value = "$remainingBalance USD",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-
-        // 3 Grandes cartes d'action
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionCardItem(
-                    title = if (hasProfile) strings.enrollTitle else strings.createAccountCta,
-                    subtitle = strings.actionEnrollSub,
-                    icon = Icons.Rounded.PersonAdd,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    enabled = true,
-                    testTag = "home_enroll_card",
-                    onClick = onNavigateEnroll
-                )
-                ActionCardItem(
-                    title = strings.actionFaceLoginTitle,
-                    subtitle = strings.actionFaceLoginSub,
-                    icon = Icons.Rounded.LockOpen,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    enabled = hasProfile,
-                    testTag = "home_face_verify_card",
-                    onClick = onNavigateFaceVerify
-                )
-                ActionCardItem(
-                    title = strings.actionRequestCreditTitle,
-                    subtitle = if (isVerified) strings.actionRequestCreditSub else strings.actionCreditDisabledHint,
-                    icon = Icons.Rounded.Payments,
-                    containerColor = if (isVerified) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    },
-                    contentColor = if (isVerified) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    enabled = isVerified,
-                    testTag = "home_request_credit_card",
-                    onClick = onNavigateCreditAssistant
-                )
-            }
-        }
-
-        // Section Mes demandes réelles
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = strings.myRequestsTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${creditRequests.size}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        if (creditRequestsState is UiState.Loading) {
-            item { SkeletonLoaderCard() }
-        } else if (creditRequests.isEmpty()) {
-            item {
-                EmptyNoticeCard(text = strings.emptyRequestsHome)
-            }
-        } else {
-            items(creditRequests.take(3), key = { it.requestId }) { req ->
-                CreditRequestSummaryCard(
-                    request = req,
-                    language = language,
-                    onClick = { onOpenCreditResult(req) }
-                )
-            }
-        }
-
-        // Section Transactions réelles
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = strings.recentTransactionsTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Surface(
-                    onClick = onNavigateHistory,
-                    shape = CircleShape,
-                    color = Color.Transparent
-                ) {
-                    Text(
-                        text = "${transactions.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            // Bandeau mode hors ligne (DataStore)
+            if (!isOnline) {
+                item {
+                    OfflineModeBanner(
+                        strings = strings,
+                        lastSyncedAtMillis = lastSyncedAtMillis
                     )
                 }
             }
-        }
 
-        if (transactionsState is UiState.Loading) {
-            item { SkeletonLoaderCard() }
-        } else if (transactions.isEmpty()) {
-            item {
-                EmptyNoticeCard(text = strings.emptyTransactionsText)
+            // Erreur réseau / Firestore éventuelle (masquée si hors ligne avec cache local disponible)
+            val hasOfflineBackup = !isOnline && (userProfile != null || creditNotifications.isNotEmpty())
+            if (!hasOfflineBackup &&
+                (profileState is UiState.Error || creditRequestsState is UiState.Error || transactionsState is UiState.Error)
+            ) {
+                val errorMsg = (profileState as? UiState.Error)?.message
+                    ?: (creditRequestsState as? UiState.Error)?.message
+                    ?: (transactionsState as? UiState.Error)?.message
+                    ?: strings.halisiErrorNetwork
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                text = errorMsg,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                }
             }
-        } else {
-            items(transactions.take(3), key = { it.txId }) { tx ->
-                TransactionSummaryCard(transaction = tx, language = language)
+
+            // Carte Statut Identité réelle (ou cache local hors ligne)
+            item {
+                if (profileState is UiState.Loading) {
+                    SkeletonLoaderCard()
+                } else {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = strings.identityCardTitle,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                IdentityStatusChip(
+                                    status = identityStatus,
+                                    language = language
+                                )
+                            }
+                            val statusDesc = when (identityStatus) {
+                                IdentityStatus.UNVERIFIED -> strings.identityCardDescUnverified
+                                IdentityStatus.PENDING -> strings.identityCardDescPending
+                                IdentityStatus.VERIFIED -> strings.identityCardDescVerified
+                            }
+                            Text(
+                                text = statusDesc,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Dernières notifications de crédit (live ou cache DataStore hors ligne)
+            if (creditNotifications.isNotEmpty() || !isOnline) {
+                item {
+                    CreditNotificationsCard(
+                        strings = strings,
+                        language = language,
+                        notifications = creditNotifications,
+                        isFromCache = !isOnline
+                    )
+                }
+            }
+
+            // Solde & métriques réelles si transactions existantes
+            if (transactions.isNotEmpty()) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            LedgerMetric(
+                                label = strings.totalDisbursedLabel,
+                                value = "$totalDisbursed USD",
+                                modifier = Modifier.weight(1f)
+                            )
+                            LedgerMetric(
+                                label = strings.totalRepaidLabel,
+                                value = "$totalRepaid USD",
+                                modifier = Modifier.weight(1f)
+                            )
+                            LedgerMetric(
+                                label = strings.remainingBalanceLabel,
+                                value = "$remainingBalance USD",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3 Grandes cartes d'action
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ActionCardItem(
+                        title = if (hasProfile) strings.enrollTitle else strings.createAccountCta,
+                        subtitle = strings.actionEnrollSub,
+                        icon = Icons.Rounded.PersonAdd,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        enabled = true,
+                        testTag = "home_enroll_card",
+                        onClick = onNavigateEnroll
+                    )
+                    ActionCardItem(
+                        title = strings.actionFaceLoginTitle,
+                        subtitle = strings.actionFaceLoginSub,
+                        icon = Icons.Rounded.LockOpen,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        enabled = hasProfile,
+                        testTag = "home_face_verify_card",
+                        onClick = onNavigateFaceVerify
+                    )
+                    ActionCardItem(
+                        title = strings.actionRequestCreditTitle,
+                        subtitle = if (isVerified) strings.actionRequestCreditSub else strings.actionCreditDisabledHint,
+                        icon = Icons.Rounded.Payments,
+                        containerColor = if (isVerified) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                        contentColor = if (isVerified) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        enabled = isVerified,
+                        testTag = "home_request_credit_card",
+                        onClick = onNavigateCreditAssistant
+                    )
+                }
+            }
+
+            // Section Mes demandes réelles
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = strings.myRequestsTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${creditRequests.size}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (creditRequestsState is UiState.Loading) {
+                item { SkeletonLoaderCard() }
+            } else if (creditRequests.isEmpty()) {
+                item {
+                    EmptyNoticeCard(text = strings.emptyRequestsHome)
+                }
+            } else {
+                items(creditRequests.take(3), key = { it.requestId }) { req ->
+                    CreditRequestSummaryCard(
+                        request = req,
+                        language = language,
+                        onClick = { onOpenCreditResult(req) }
+                    )
+                }
+            }
+
+            // Section Transactions réelles
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = strings.recentTransactionsTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Surface(
+                        onClick = onNavigateHistory,
+                        shape = CircleShape,
+                        color = Color.Transparent
+                    ) {
+                        Text(
+                            text = "${transactions.size}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            if (transactionsState is UiState.Loading) {
+                item { SkeletonLoaderCard() }
+            } else if (transactions.isEmpty()) {
+                item {
+                    EmptyNoticeCard(text = strings.emptyTransactionsText)
+                }
+            } else {
+                items(transactions.take(3), key = { it.txId }) { tx ->
+                    TransactionSummaryCard(transaction = tx, language = language)
+                }
             }
         }
     }

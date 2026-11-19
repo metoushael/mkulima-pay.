@@ -702,3 +702,30 @@ fun CreditNotificationsCard(
     }
 }
 
+/**
+ * En-tête fixe des écrans principaux : reste en place pendant que le contenu défile dessous.
+ * Fond plein + fine séparation pour un rendu net, y compris en mode sombre.
+ */
+@Composable
+fun FixedHeaderBar(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                content()
+            }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+            )
+        }
+    }
+}

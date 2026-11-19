@@ -72,6 +72,7 @@ import com.aistudio.mkulimapay.rdcapp.model.ThemePreference
 import com.aistudio.mkulimapay.rdcapp.model.UserProfile
 import com.aistudio.mkulimapay.rdcapp.services.MockConfig
 import com.aistudio.mkulimapay.rdcapp.services.MockMode
+import com.aistudio.mkulimapay.rdcapp.ui.components.FixedHeaderBar
 import com.aistudio.mkulimapay.rdcapp.ui.components.IdentityStatusChip
 import kotlinx.coroutines.launch
 
@@ -103,402 +104,403 @@ fun ProfileScreen(
     val userProfile = (profileState as? UiState.Success)?.data
     val hasProfile = userProfile != null && userProfile.hasEnrolledProfile
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item {
+    Column(modifier = Modifier.fillMaxSize()) {
+        FixedHeaderBar {
             Text(
                 text = strings.profileTitle,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
         }
-
-        // Carte Profil réel ou absence de profil
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Carte Profil réel ou absence de profil
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val selfieUri = userProfile?.localSelfieUri
-                        if (!selfieUri.isNullOrBlank()) {
-                            Surface(
-                                shape = CircleShape,
-                                modifier = Modifier.size(64.dp)
-                            ) {
-                                AsyncImage(
-                                    model = Uri.parse(selfieUri),
-                                    contentDescription = userProfile.fullName,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            val selfieUri = userProfile?.localSelfieUri
+                            if (!selfieUri.isNullOrBlank()) {
+                                Surface(
+                                    shape = CircleShape,
+                                    modifier = Modifier.size(64.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = Uri.parse(selfieUri),
+                                        contentDescription = userProfile.fullName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Rounded.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(36.dp)
                                 )
                             }
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(36.dp)
-                            )
+
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = if (hasProfile) {
+                                        userProfile.fullName
+                                    } else {
+                                        strings.noProfileRegisteredTitle
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (!currentUserEmail.isNullOrBlank()) {
+                                    Text(
+                                        text = "${strings.signedInAccountLabel} : $currentUserEmail",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (hasProfile) {
+                                    Text(
+                                        text = "${userProfile.phone} • ${userProfile.formattedLocation}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "${strings.fieldAgriculturalSector} : ${AppStrings.sectorLabel(userProfile.agriculturalSector, settings.language)}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                IdentityStatusChip(
+                                    status = userProfile?.identityStatus ?: IdentityStatus.UNVERIFIED,
+                                    language = settings.language
+                                )
+                            }
                         }
 
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        if (!hasProfile) {
+                            Button(
+                                onClick = onNavigateEnroll,
+                                shape = CircleShape,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .testTag("profile_create_account_button")
+                            ) {
+                                Icon(Icons.Rounded.PersonAdd, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(strings.createAccountCta)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Langue & Thème
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Translate,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                             Text(
-                                text = if (hasProfile) {
-                                    userProfile.fullName
-                                } else {
-                                    strings.noProfileRegisteredTitle
-                                },
-                                style = MaterialTheme.typography.titleMedium,
+                                text = strings.languageLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            AppLanguage.entries.forEach { lang ->
+                                FilterChip(
+                                    selected = settings.language == lang,
+                                    onClick = { onSetLanguage(lang) },
+                                    label = { Text(lang.displayLabel) },
+                                    modifier = Modifier.testTag("profile_lang_${lang.name}")
+                                )
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.DarkMode,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = strings.themeLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = settings.themePreference == ThemePreference.AUTO,
+                                onClick = { onSetTheme(ThemePreference.AUTO) },
+                                label = { Text(strings.themeAuto) },
+                                modifier = Modifier.testTag("profile_theme_auto")
+                            )
+                            FilterChip(
+                                selected = settings.themePreference == ThemePreference.LIGHT,
+                                onClick = { onSetTheme(ThemePreference.LIGHT) },
+                                label = { Text(strings.themeLight) },
+                                modifier = Modifier.testTag("profile_theme_light")
+                            )
+                            FilterChip(
+                                selected = settings.themePreference == ThemePreference.DARK,
+                                onClick = { onSetTheme(ThemePreference.DARK) },
+                                label = { Text(strings.themeDark) },
+                                modifier = Modifier.testTag("profile_theme_dark")
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Accessibilité & Notifications
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        SettingsSwitchRow(
+                            icon = Icons.Rounded.FormatSize,
+                            title = strings.largeTextLabel,
+                            subtitle = strings.largeTextSub,
+                            checked = settings.largeText,
+                            onCheckedChange = onSetLargeText,
+                            testTag = "profile_large_text_switch"
+                        )
+                        HorizontalDivider()
+                        SettingsSwitchRow(
+                            icon = Icons.Rounded.Notifications,
+                            title = strings.notificationsLabel,
+                            subtitle = null,
+                            checked = settings.notificationsEnabled,
+                            onCheckedChange = onSetNotifications,
+                            testTag = "profile_notifications_switch"
+                        )
+                    }
+                }
+            }
+
+            // Mode démo (développeur)
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.BugReport,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = strings.devDemoTitle,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
-                            if (!currentUserEmail.isNullOrBlank()) {
-                                Text(
-                                    text = "${strings.signedInAccountLabel} : $currentUserEmail",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            if (hasProfile) {
-                                Text(
-                                    text = "${userProfile.phone} • ${userProfile.formattedLocation}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "${strings.fieldAgriculturalSector} : ${AppStrings.sectorLabel(userProfile.agriculturalSector, settings.language)}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            IdentityStatusChip(
-                                status = userProfile?.identityStatus ?: IdentityStatus.UNVERIFIED,
-                                language = settings.language
-                            )
                         }
-                    }
-
-                    if (!hasProfile) {
-                        Button(
-                            onClick = onNavigateEnroll,
-                            shape = CircleShape,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .testTag("profile_create_account_button")
-                        ) {
-                            Icon(Icons.Rounded.PersonAdd, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(strings.createAccountCta)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Langue & Thème
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Translate,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
                         Text(
-                            text = strings.languageLabel,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AppLanguage.entries.forEach { lang ->
-                            FilterChip(
-                                selected = settings.language == lang,
-                                onClick = { onSetLanguage(lang) },
-                                label = { Text(lang.displayLabel) },
-                                modifier = Modifier.testTag("profile_lang_${lang.name}")
-                            )
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.DarkMode,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = strings.themeLabel,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = settings.themePreference == ThemePreference.AUTO,
-                            onClick = { onSetTheme(ThemePreference.AUTO) },
-                            label = { Text(strings.themeAuto) },
-                            modifier = Modifier.testTag("profile_theme_auto")
-                        )
-                        FilterChip(
-                            selected = settings.themePreference == ThemePreference.LIGHT,
-                            onClick = { onSetTheme(ThemePreference.LIGHT) },
-                            label = { Text(strings.themeLight) },
-                            modifier = Modifier.testTag("profile_theme_light")
-                        )
-                        FilterChip(
-                            selected = settings.themePreference == ThemePreference.DARK,
-                            onClick = { onSetTheme(ThemePreference.DARK) },
-                            label = { Text(strings.themeDark) },
-                            modifier = Modifier.testTag("profile_theme_dark")
-                        )
-                    }
-                }
-            }
-        }
-
-        // Accessibilité & Notifications
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.FormatSize,
-                        title = strings.largeTextLabel,
-                        subtitle = strings.largeTextSub,
-                        checked = settings.largeText,
-                        onCheckedChange = onSetLargeText,
-                        testTag = "profile_large_text_switch"
-                    )
-                    HorizontalDivider()
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.Notifications,
-                        title = strings.notificationsLabel,
-                        subtitle = null,
-                        checked = settings.notificationsEnabled,
-                        onCheckedChange = onSetNotifications,
-                        testTag = "profile_notifications_switch"
-                    )
-                }
-            }
-        }
-
-        // Mode démo (développeur)
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.BugReport,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = strings.devDemoTitle,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text(
-                        text = strings.devDemoSubtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        MockMode.entries.forEach { mode ->
-                            val label = when (mode) {
-                                MockMode.NORMAL -> strings.devModeNormal
-                                MockMode.ECHEC_VISAGE -> strings.devModeFaceFail
-                                MockMode.ECHEC_RESEAU -> strings.devModeNetworkFail
-                                MockMode.LENT -> strings.devModeSlow
-                            }
-                            FilterChip(
-                                selected = mockMode == mode,
-                                onClick = {
-                                    mockMode = mode
-                                    MockConfig.mode = mode
-                                },
-                                label = { Text(label) },
-                                modifier = Modifier.testTag("profile_dev_mode_${mode.name}")
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Statut Cloud Firestore & cache hors ligne DataStore
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isOnline) {
-                        MaterialTheme.colorScheme.surfaceContainerLow
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    }
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isOnline) Icons.Rounded.CloudDone else Icons.Rounded.CloudOff,
-                        contentDescription = null,
-                        tint = if (isOnline) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        }
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (isOnline) strings.cloudSyncTitle else strings.offlineBannerTitle,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (isOnline) strings.cloudSyncSubtitle else strings.offlineBannerDesc,
+                            text = strings.devDemoSubtitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (lastSyncedAtMillis > 0L) {
-                            val formattedSync = remember(lastSyncedAtMillis) {
-                                java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
-                                    .format(java.util.Date(lastSyncedAtMillis))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            MockMode.entries.forEach { mode ->
+                                val label = when (mode) {
+                                    MockMode.NORMAL -> strings.devModeNormal
+                                    MockMode.ECHEC_VISAGE -> strings.devModeFaceFail
+                                    MockMode.ECHEC_RESEAU -> strings.devModeNetworkFail
+                                    MockMode.LENT -> strings.devModeSlow
+                                }
+                                FilterChip(
+                                    selected = mockMode == mode,
+                                    onClick = {
+                                        mockMode = mode
+                                        MockConfig.mode = mode
+                                    },
+                                    label = { Text(label) },
+                                    modifier = Modifier.testTag("profile_dev_mode_${mode.name}")
+                                )
                             }
-                            Text(
-                                text = String.format(strings.lastSyncedLabel, formattedSync),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
                         }
                     }
                 }
             }
-        }
 
-        // Actions de compte : Déconnexion, À propos, Suppression Firestore
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(
-                    onClick = { showAboutDialog = true },
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("profile_about_button")
-                ) {
-                    Icon(Icons.Rounded.Info, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(strings.aboutTitle)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        signOutFromAccount(
-                            credentialManager = credentialManager,
-                            scope = scope
-                        )
-                    },
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("profile_sign_out_button")
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(strings.signOut)
-                }
-
-                Button(
-                    onClick = { showDeleteDialog = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+            // Statut Cloud Firestore & cache hors ligne DataStore
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isOnline) {
+                            MaterialTheme.colorScheme.surfaceContainerLow
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        }
                     ),
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("profile_delete_data_button")
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Rounded.DeleteForever, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(strings.deleteDataTitle)
+                    Row(
+                        modifier = Modifier.padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isOnline) Icons.Rounded.CloudDone else Icons.Rounded.CloudOff,
+                            contentDescription = null,
+                            tint = if (isOnline) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            }
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isOnline) strings.cloudSyncTitle else strings.offlineBannerTitle,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isOnline) strings.cloudSyncSubtitle else strings.offlineBannerDesc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (lastSyncedAtMillis > 0L) {
+                                val formattedSync = remember(lastSyncedAtMillis) {
+                                    java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                                        .format(java.util.Date(lastSyncedAtMillis))
+                                }
+                                Text(
+                                    text = String.format(strings.lastSyncedLabel, formattedSync),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Actions de compte : Déconnexion, À propos, Suppression Firestore
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { showAboutDialog = true },
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("profile_about_button")
+                    ) {
+                        Icon(Icons.Rounded.Info, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(strings.aboutTitle)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            signOutFromAccount(
+                                credentialManager = credentialManager,
+                                scope = scope
+                            )
+                        },
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("profile_sign_out_button")
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(strings.signOut)
+                    }
+
+                    Button(
+                        onClick = { showDeleteDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag("profile_delete_data_button")
+                    ) {
+                        Icon(Icons.Rounded.DeleteForever, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(strings.deleteDataTitle)
+                    }
                 }
             }
         }

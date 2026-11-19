@@ -223,7 +223,9 @@ data class AppSettings(
     val themePreference: ThemePreference = ThemePreference.AUTO,
     val largeText: Boolean = false,
     val notificationsEnabled: Boolean = true,
-    val onboardingCompleted: Boolean = false
+    val onboardingCompleted: Boolean = false,
+    /** false tant que DataStore n'a pas fini de charger les réglages enregistrés. */
+    val isLoaded: Boolean = false
 )
 
 enum class CreditNotificationType {

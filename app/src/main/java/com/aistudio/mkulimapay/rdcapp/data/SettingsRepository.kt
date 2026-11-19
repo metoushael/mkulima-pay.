@@ -38,7 +38,8 @@ class SettingsRepository(private val context: Context) {
             } ?: ThemePreference.AUTO,
             largeText = prefs[Keys.LARGE_TEXT] ?: false,
             notificationsEnabled = prefs[Keys.NOTIFICATIONS] ?: true,
-            onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false
+            onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
+            isLoaded = true
         )
     }
 
