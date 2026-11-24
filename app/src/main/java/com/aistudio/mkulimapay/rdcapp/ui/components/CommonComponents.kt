@@ -17,6 +17,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,6 +82,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.aistudio.mkulimapay.rdcapp.R
+import androidx.compose.ui.res.painterResource
 import coil.compose.AsyncImage
 import com.aistudio.mkulimapay.rdcapp.i18n.AppStrings
 import com.aistudio.mkulimapay.rdcapp.i18n.LocalizedStrings
@@ -95,57 +98,26 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Logo vectoriel Mkulima Pay : feuille agricole + pièce de monnaie dorée.
+ * Logo Mkulima Pay : pièce-soleil dorée posée sur des sillons de champ.
+ * Affiché sur une pastille claire pour rester lisible sur tous les fonds.
  */
 @Composable
 fun MkulimaLogo(
     modifier: Modifier = Modifier,
     size: Dp = 64.dp
 ) {
-    val primary = MaterialTheme.colorScheme.primary
-    val gold = LocalMkulimaColors.current.goldAccent
-    val onPrimary = MaterialTheme.colorScheme.onPrimary
-
     Box(
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(16.dp))
-            .background(primary),
+            .clip(RoundedCornerShape(size * 0.25f))
+            .background(Color(0xFFF6FBF3)),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(10.dp)) {
-            val w = this.size.width
-            val h = this.size.height
-
-            // Pièce de monnaie dorée en arrière-plan droit
-            drawCircle(
-                color = gold,
-                radius = w * 0.28f,
-                center = Offset(w * 0.65f, h * 0.42f)
-            )
-            drawCircle(
-                color = onPrimary.copy(alpha = 0.35f),
-                radius = w * 0.19f,
-                center = Offset(w * 0.65f, h * 0.42f),
-                style = Stroke(width = 2.5f)
-            )
-
-            // Feuille stylisée en premier plan gauche
-            val leafPath = Path().apply {
-                moveTo(w * 0.16f, h * 0.78f)
-                cubicTo(w * 0.12f, h * 0.34f, w * 0.46f, h * 0.18f, w * 0.64f, h * 0.22f)
-                cubicTo(w * 0.68f, h * 0.56f, w * 0.44f, h * 0.80f, w * 0.16f, h * 0.78f)
-                close()
-            }
-            drawPath(leafPath, color = onPrimary)
-            drawLine(
-                color = primary,
-                start = Offset(w * 0.18f, h * 0.76f),
-                end = Offset(w * 0.54f, h * 0.34f),
-                strokeWidth = 3.5f,
-                cap = StrokeCap.Round
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.ic_mkulima_logo),
+            contentDescription = "Mkulima Pay",
+            modifier = Modifier.size(size * 0.68f)
+        )
     }
 }
 
